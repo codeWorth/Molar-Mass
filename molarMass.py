@@ -12,61 +12,67 @@ for line in massesFile.read().splitlines():
     symbols.append(words[2])
     atomicNumbers.append(words[3])
 
-def add(currentAmount, currentElement, mult):
-    realAmount = mult
-    if (currentAmount != ""):
-        realAmount = int(currentAmount) * int(mult)
-    
+def add(currentAmount, currentElement):
     if (currentElement in elements):
-        amounts[elements.index(currentElement)] += realAmount
+        amounts[elements.index(currentElement)] += currentAmount
     else:
         elements.append(currentElement)
-        amounts.append(realAmount)
+        amounts.append(currentAmount)
 
-def process(molecule, mult=""):
-    if (mult == ""):
-        mult = 1
-    
+def process(molecule, mult=1):
     currentElement = ""
-    currentAmount = ""
+    currentAmount = 1
+    parens = 0
     inParens = False
     hadParens = False
     for char in molecule:
-        if (char == "("):
+        if (char == ")"):
+            parens -= 1
+
+            if (parens == 0):
+                inParens = False
+                hadParens = True
+            else:
+                currentElement += char
+        elif (inParens):
+            currentElement += char
+            if (char == "("):
+                parens += 1
+        elif (char == "("):
+            parens += 1
             if (currentElement != ""):
                 if (hadParens):
-                    process(currentElement, currentAmount)
+                    process(currentElement, int(currentAmount) * mult)
                 else:
-                    add(currentAmount, currentElement, mult)
+                    add(int(currentAmount) * mult, currentElement)
 
                 hadParens = False
-                currentAmount = ""
+                currentAmount = 1
                 currentElement = ""
                 
             inParens = True
-        elif (char == ")"):
-            inParens = False
-            hadParens = True
-        elif (inParens):
-            currentElement += char
         elif (char.isdigit()):
-            currentAmount += char
+            if (currentAmount == 1):
+                currentAmount = char
+            else:
+                currentAmount += char
         elif (char.lower() == char or currentElement == ""):
             currentElement += char
         else:
             if (hadParens):
-                process(currentElement, currentAmount)
+                process(currentElement, int(currentAmount) * mult)
             else:
-                add(currentAmount, currentElement, mult)
+                add(int(currentAmount) * mult, currentElement)
 
             hadParens = False
-            currentAmount = ""
+            parens = 0
+            currentAmount = 1
             currentElement = char
 
     if (hadParens):
-        process(currentElement, currentAmount)
+        process(currentElement, int(currentAmount) * mult)
     else:
-        add(currentAmount, currentElement, mult)
+        add(int(currentAmount) * mult, currentElement)
     
 while True:
     molecule = input("Formula: ")
