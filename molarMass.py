@@ -12,16 +12,61 @@ for line in massesFile.read().splitlines():
     symbols.append(words[2])
     atomicNumbers.append(words[3])
 
-def add(currentAmount, currentElement):
-    realAmount = 1
+def add(currentAmount, currentElement, mult):
+    realAmount = mult
     if (currentAmount != ""):
-        realAmount = int(currentAmount)
+        realAmount = int(currentAmount) * int(mult)
     
     if (currentElement in elements):
         amounts[elements.index(currentElement)] += realAmount
     else:
         elements.append(currentElement)
         amounts.append(realAmount)
+
+def process(molecule, mult=""):
+    if (mult == ""):
+        mult = 1
+    
+    currentElement = ""
+    currentAmount = ""
+    inParens = False
+    hadParens = False
+    for char in molecule:
+        if (char == "("):
+            if (currentElement != ""):
+                if (hadParens):
+                    process(currentElement, currentAmount)
+                else:
+                    add(currentAmount, currentElement, mult)
+
+                hadParens = False
+                currentAmount = ""
+                currentElement = ""
+                
+            inParens = True
+        elif (char == ")"):
+            inParens = False
+            hadParens = True
+        elif (inParens):
+            currentElement += char
+        elif (char.isdigit()):
+            currentAmount += char
+        elif (char.lower() == char or currentElement == ""):
+            currentElement += char
+        else:
+            if (hadParens):
+                process(currentElement, currentAmount)
+            else:
+                add(currentAmount, currentElement, mult)
+
+            hadParens = False
+            currentAmount = ""
+            currentElement = char
+
+    if (hadParens):
+        process(currentElement, currentAmount)
+    else:
+        add(currentAmount, currentElement, mult)
     
 while True:
     molecule = input("Formula: ")
@@ -30,33 +75,21 @@ while True:
     
     elements = []
     amounts = []
-    currentElement = molecule[0]
-    currentAmount = ""
-    for char in molecule[1:]:
-        if (char.isdigit()):
-            currentAmount += char
-        elif (char.lower() == char):
-            currentElement += char
-        else:
-            add(currentAmount, currentElement)
-
-            currentAmount = ""
-            currentElement = char
-
-    add(currentAmount, currentElement)
+    process(molecule)
 
     moleculeMasses = []
     moleculeNames = []
     totalMass = 0
-    for element in elements:
+    for j, element in enumerate(elements):
         i = symbols.index(element)
-        totalMass += float(masses[i])
-        moleculeMasses.append(float(masses[i]))
+        thisAmount = int(amounts[j])
+        totalMass += float(masses[i]) * thisAmount
+        moleculeMasses.append(float(masses[i]) * thisAmount)
         moleculeNames.append(names[i])
 
-    print("Total Mass: " + str(totalMass))
+    print("Total Mass: " + str(round(totalMass, 4)))
     for i, name in enumerate(moleculeNames):
-        print(name + ": Mass: " + str(moleculeMasses[i]) + ", Percent: " + str(round(moleculeMasses[i]/totalMass*100, 3)) + "%")
+        print(name + ": Mass: " + str(round(moleculeMasses[i], 4)) + ", Percent: " + str(round(moleculeMasses[i]/totalMass*100, 4)) + "%")
 
 
         
